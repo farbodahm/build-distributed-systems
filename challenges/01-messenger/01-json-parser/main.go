@@ -18,7 +18,10 @@ func main() {
 			fmt.Fprintln(os.Stderr, "Error parsing JSON:", err)
 			continue
 		}
-		bodyType, _ := msg.Body["type"].(string)
+		bodyType, ok := msg.Body["type"].(string)
+		if !ok {
+			bodyType = "unknown"
+		}
 		fmt.Printf("PARSED: %s|%s|%s\n", msg.Src, msg.Dest, bodyType)
 		fmt.Fprintf(os.Stderr, "DEBUG: src=%s dest=%s body=%v\n", msg.Src, msg.Dest, msg.Body)
 	}
