@@ -1,4 +1,4 @@
 .tmp/
 bin/
 maelstrom/
-challenges/**/submit.go
+challenges/**/_submit.go

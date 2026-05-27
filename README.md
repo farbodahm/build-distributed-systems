@@ -21,7 +21,7 @@ make run CHALLENGE=01-messenger/01-json-parser \
 make verify-submit CHALLENGE=01-messenger/01-json-parser
 ```
 
-Then paste `challenges/<path>/submit.go` into the web editor.
+Then paste `challenges/<path>/_submit.go` into the web editor.
 
 
 ### How submit works
@@ -31,4 +31,4 @@ Then paste `challenges/<path>/submit.go` into the web editor.
 3. The two bodies are concatenated.
 4. `goimports` cleans up the import block.
 
-Result: a self-contained `submit.go` that compiles in an empty directory.
+Result: a self-contained `_submit.go` that compiles in an empty directory.

@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"os"
 
 	. "build-distributed-systems/internal/core"
@@ -15,14 +14,14 @@ func main() {
 		line := scanner.Text()
 		var msg Message
 		if err := json.Unmarshal([]byte(line), &msg); err != nil {
-			fmt.Fprintln(os.Stderr, "Error parsing JSON:", err)
+			Log.Error("parsing JSON: %v", err)
 			continue
 		}
 		bodyType, ok := msg.Body["type"].(string)
 		if !ok {
 			bodyType = "unknown"
 		}
-		fmt.Printf("PARSED: %s|%s|%s\n", msg.Src, msg.Dest, bodyType)
-		fmt.Fprintf(os.Stderr, "DEBUG: src=%s dest=%s body=%v\n", msg.Src, msg.Dest, msg.Body)
+		Log.Print("PARSED: %s|%s|%s", msg.Src, msg.Dest, bodyType)
+		Log.Debug("src=%s dest=%s body=%v", msg.Src, msg.Dest, msg.Body)
 	}
 }

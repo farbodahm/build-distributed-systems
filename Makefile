@@ -5,8 +5,8 @@ MODULE := build-distributed-systems
 help:
 	@echo "Targets:"
 	@echo "  run CHALLENGE=<path>                 Run a challenge (reads stdin)"
-	@echo "  submit CHALLENGE=<path>              Generate paste-ready submit.go"
-	@echo "  verify-submit CHALLENGE=<path>       Confirm submit.go compiles standalone"
+	@echo "  submit CHALLENGE=<path>              Generate paste-ready _submit.go"
+	@echo "  verify-submit CHALLENGE=<path>       Confirm _submit.go compiles standalone"
 	@echo "  clean                                Remove generated artifacts"
 
 BUNDLE    := go run golang.org/x/tools/cmd/bundle@latest
@@ -23,15 +23,15 @@ submit:
 	@$(BUNDLE) -pkg main -prefix '' -dst ./challenges/$(CHALLENGE) ./internal/core > .tmp/core_bundle.go
 	@awk '/^package main/ {next} /^import \(/,/^\)/ {next} /^import "/ {next} {print}' \
 	  challenges/$(CHALLENGE)/main.go > .tmp/main_body.go
-	@cat .tmp/core_bundle.go .tmp/main_body.go > challenges/$(CHALLENGE)/submit.go
-	@$(GOIMPORTS) -w challenges/$(CHALLENGE)/submit.go
-	@echo "✓ challenges/$(CHALLENGE)/submit.go ready to paste"
+	@cat .tmp/core_bundle.go .tmp/main_body.go > challenges/$(CHALLENGE)/_submit.go
+	@$(GOIMPORTS) -w challenges/$(CHALLENGE)/_submit.go
+	@echo "✓ challenges/$(CHALLENGE)/_submit.go ready to paste"
 
 verify-submit: submit
-	@d=$$(mktemp -d) && cp challenges/$(CHALLENGE)/submit.go $$d/main.go && \
+	@d=$$(mktemp -d) && cp challenges/$(CHALLENGE)/_submit.go $$d/main.go && \
 	  (cd $$d && go mod init submittest >/dev/null 2>&1 && go build .) && \
-	  echo "✓ submit.go compiles standalone" && rm -rf $$d
+	  echo "✓ _submit.go compiles standalone" && rm -rf $$d
 
 clean:
 	rm -rf .tmp bin
-	find challenges -name 'submit.go' -delete
+	find challenges -name '_submit.go' -delete
