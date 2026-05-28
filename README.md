@@ -11,8 +11,7 @@ I enjoy the path and the learning.
 ## Develop
 
 ```
-make run CHALLENGE=01-messenger/01-json-parser \
-  < challenges/01-messenger/01-json-parser/input.txt
+make run CHALLENGE=01-messenger/01-json-parser
 ```
 
 ## Submit

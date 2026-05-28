@@ -15,7 +15,11 @@ GOIMPORTS := go run golang.org/x/tools/cmd/goimports@latest
 
 run:
 	@test -n "$(CHALLENGE)" || (echo "usage: make run CHALLENGE=<path>"; exit 1)
-	@go run ./challenges/$(CHALLENGE)
+	@if [ -f challenges/$(CHALLENGE)/input.txt ]; then \
+	  jq -c . challenges/$(CHALLENGE)/input.txt | go run ./challenges/$(CHALLENGE); \
+	else \
+	  go run ./challenges/$(CHALLENGE); \
+	fi
 
 submit:
 	@test -n "$(CHALLENGE)" || (echo "usage: make submit CHALLENGE=<path>"; exit 1)
