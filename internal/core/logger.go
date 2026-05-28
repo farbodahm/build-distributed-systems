@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"log"
 	"os"
 )
@@ -20,6 +21,17 @@ var Log = &Logger{
 // Print writes to stdout. Use for protocol output the grader checks.
 func (lg *Logger) Print(format string, args ...interface{}) {
 	lg.out.Printf(format, args...)
+}
+
+// PrintJSON marshals v and writes it to stdout as a single line. Use for
+// protocol replies. On marshal error, logs to stderr and writes nothing.
+func (lg *Logger) PrintJSON(v interface{}) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		lg.Error("marshal: %v", err)
+		return
+	}
+	lg.out.Printf("%s", b)
 }
 
 func (lg *Logger) Info(format string, args ...interface{}) {
