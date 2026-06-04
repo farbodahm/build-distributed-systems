@@ -4,6 +4,11 @@ import (
 	. "build-distributed-systems/internal/core"
 )
 
+type Message struct {
+	Envelope
+	Body map[string]interface{} `json:"body"`
+}
+
 func main() {
 	var msg Message
 	for ScanLine(&msg) {
