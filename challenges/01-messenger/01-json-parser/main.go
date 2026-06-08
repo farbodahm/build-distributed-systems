@@ -1,6 +1,10 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
+	"os"
+
 	. "build-distributed-systems/internal/core"
 )
 
@@ -10,8 +14,17 @@ type Message struct {
 }
 
 func main() {
-	var msg Message
-	for ScanLine(&msg) {
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if len(line) == 0 {
+			continue
+		}
+		var msg Message
+		if err := json.Unmarshal(line, &msg); err != nil {
+			Log.Error("parse JSON: %v", err)
+			continue
+		}
 		bodyType, ok := msg.Body["type"].(string)
 		if !ok {
 			bodyType = "unknown"

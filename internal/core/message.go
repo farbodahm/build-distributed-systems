@@ -12,6 +12,16 @@ type Typed interface {
 	ReplyType() string
 }
 
+// Incoming is the sealed set of message types ScanTyped can return. The
+// unexported marker method means only types in this package can join the set,
+// so a type switch over an Incoming has a known, closed list of cases.
+type Incoming interface {
+	isIncoming()
+}
+
+func (InitMessage) isIncoming() {}
+func (EchoMessage) isIncoming() {}
+
 // Envelope is the outer shell shared by every message type.
 type Envelope struct {
 	Src  string `json:"src"`
@@ -30,6 +40,7 @@ type BodyCommon struct {
 	InReplyTo int    `json:"in_reply_to,omitempty"`
 }
 
+// Init
 type InitMessage struct {
 	Envelope
 	Body struct {
@@ -45,6 +56,7 @@ type InitOkBody struct {
 
 func (InitOkBody) ReplyType() string { return "init_ok" }
 
+// Echo
 type EchoMessage struct {
 	Envelope
 	Body struct {
