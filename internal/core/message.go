@@ -1,5 +1,13 @@
 package core
 
+// IncomingMessageType is different available message types.
+type IncomingMessageType string
+
+const (
+	MsgTypeInit IncomingMessageType = "init"
+	MsgTypeEcho IncomingMessageType = "echo"
+)
+
 // Replyable is what Node.Reply needs from an incoming message's envelope.
 // The request's msg_id is found separately via reflection on the Body field.
 type Replyable interface {
@@ -7,20 +15,19 @@ type Replyable interface {
 	Destination() string
 }
 
+// Incoming is the sealed set of message types ScanTyped can return. The
+// unexported marker method means only types in this package can join the set,
+// so a type switch over an Incoming has a known, closed list of cases. Type
+// reports the message's protocol type without a type switch or reflection.
+type Incoming interface {
+	isIncoming()
+	Type() IncomingMessageType
+}
+
 // Typed lets a reply body declare its protocol type string.
 type Typed interface {
 	ReplyType() string
 }
-
-// Incoming is the sealed set of message types ScanTyped can return. The
-// unexported marker method means only types in this package can join the set,
-// so a type switch over an Incoming has a known, closed list of cases.
-type Incoming interface {
-	isIncoming()
-}
-
-func (InitMessage) isIncoming() {}
-func (EchoMessage) isIncoming() {}
 
 // Envelope is the outer shell shared by every message type.
 type Envelope struct {
@@ -40,6 +47,12 @@ type BodyCommon struct {
 	InReplyTo int    `json:"in_reply_to,omitempty"`
 }
 
+var _ Incoming = InitMessage{}
+var _ Replyable = InitMessage{}
+
+var _ Incoming = EchoMessage{}
+var _ Replyable = EchoMessage{}
+
 // Init
 type InitMessage struct {
 	Envelope
@@ -49,6 +62,9 @@ type InitMessage struct {
 		NodeIDs []string `json:"node_ids"`
 	} `json:"body"`
 }
+
+func (InitMessage) isIncoming()               {}
+func (InitMessage) Type() IncomingMessageType { return MsgTypeInit }
 
 type InitOkBody struct {
 	BodyCommon
@@ -64,6 +80,9 @@ type EchoMessage struct {
 		Echo string `json:"echo"`
 	} `json:"body"`
 }
+
+func (EchoMessage) isIncoming()               {}
+func (EchoMessage) Type() IncomingMessageType { return MsgTypeEcho }
 
 type EchoOkBody struct {
 	BodyCommon
