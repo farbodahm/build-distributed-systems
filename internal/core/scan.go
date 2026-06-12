@@ -9,14 +9,6 @@ import (
 
 var stdin = bufio.NewScanner(os.Stdin)
 
-// MessageType is different available message types.
-type MessageType string
-
-const (
-	MsgTypeInit MessageType = "init"
-	MsgTypeEcho MessageType = "echo"
-)
-
 // ScanTyped reads the next non-empty line, looks at its body "type" field, and
 // stores the matching concrete message type in *target. Type-switch on it to
 // handle it. Returns false on EOF.
@@ -38,7 +30,7 @@ func ScanTyped(target *Incoming) bool {
 		}
 		var probe struct {
 			Body struct {
-				Type MessageType `json:"type"`
+				Type IncomingMessageType `json:"type"`
 			} `json:"body"`
 		}
 		if err := json.Unmarshal(line, &probe); err != nil {
@@ -60,7 +52,7 @@ func ScanTyped(target *Incoming) bool {
 }
 
 // decodeByType unmarshals line into the concrete message type named by t.
-func decodeByType(t MessageType, line []byte) (Incoming, error) {
+func decodeByType(t IncomingMessageType, line []byte) (Incoming, error) {
 	switch t {
 	case MsgTypeInit:
 		var m InitMessage
