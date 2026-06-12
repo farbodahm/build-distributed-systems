@@ -5,6 +5,9 @@ import (
 	"sync"
 )
 
+// Handler processes one incoming message and may reply via Node.Reply.
+type Handler func(msg Incoming) error
+
 // Node holds per-process protocol state.
 type Node struct {
 	ID    string
@@ -12,12 +15,12 @@ type Node struct {
 
 	mu        sync.Mutex
 	nextMsgID int
-	handlers  map[IncomingMessageType]func(Incoming) error
+	handlers  map[IncomingMessageType]Handler
 }
 
 func NewNode() *Node {
 	return &Node{
-		handlers: make(map[IncomingMessageType]func(Incoming) error),
+		handlers: make(map[IncomingMessageType]Handler),
 	}
 }
 
@@ -42,7 +45,7 @@ func (n *Node) NextMsgID() int {
 
 // RegisterHandler registers a handler for incoming messages of type t.
 // The handler can reply to the message using Node.Reply.
-func (n *Node) RegisterHandler(t IncomingMessageType, handler func(Incoming) error) {
+func (n *Node) RegisterHandler(t IncomingMessageType, handler Handler) {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 
@@ -52,48 +55,47 @@ func (n *Node) RegisterHandler(t IncomingMessageType, handler func(Incoming) err
 	n.handlers[t] = handler
 }
 
+// OnInit registers a typed handler for init messages.
+func (n *Node) OnInit(h func(InitMessage) error) {
+	n.RegisterHandler(MsgTypeInit, func(msg Incoming) error { return h(msg.(InitMessage)) })
+}
+
+// OnEcho registers a typed handler for echo messages.
+func (n *Node) OnEcho(h func(EchoMessage) error) {
+	n.RegisterHandler(MsgTypeEcho, func(msg Incoming) error { return h(msg.(EchoMessage)) })
+}
+
 // Run reads messages from stdin and dispatches each to its registered handler,
-// running every handler in its own goroutine. It returns after stdin closes
-// and all in-flight handlers finish.
+// one at a time, until stdin closes.
 func (n *Node) Run() error {
 	Log.Info("starting node")
-	var wg sync.WaitGroup
 
 	var msg Incoming
 	for ScanTyped(&msg) {
 		t := msg.Type()
-
-		n.mu.Lock()
 		handler, ok := n.handlers[t]
-		n.mu.Unlock()
 		if !ok {
 			Log.Warn("no handler registered for message type %q", t)
 			continue
 		}
-
-		wg.Add(1)
-		go func(m Incoming, t IncomingMessageType, h func(Incoming) error) {
-			defer wg.Done()
-			if err := h(m); err != nil {
-				Log.Error("handler %q: %v", t, err)
-			}
-		}(msg, t, handler)
+		if err := handler(msg); err != nil {
+			Log.Error("handler %q: %v", t, err)
+		}
 	}
 
-	wg.Wait()
 	return nil
 }
 
 // Reply sends body as a JSON reply to req. Src/Dest are swapped. The body's
 // MsgID is set to a fresh counter value and InReplyTo is copied from the
-// request's Body.MsgID. Field lookups go through reflection, so body just
-// needs to embed BodyCommon (or otherwise expose MsgID/InReplyTo as exported
-// fields) and req's body needs to expose MsgID.
+// request's Body.MsgID. Field lookups go through reflection, so body just needs
+// to embed BodyCommon (or otherwise expose MsgID/InReplyTo as exported fields)
+// and req's body needs to expose MsgID.
 //
 // body must be a pointer so reflection can write to its fields.
 func (n *Node) Reply(req Replyable, body interface{}) {
 	msgID := n.NextMsgID()
-	reqMsgID := requestMsgID(req)
+	reqMsgID := req.RequestMsgID()
 
 	v := reflect.ValueOf(body)
 	if v.Kind() == reflect.Ptr {
@@ -116,22 +118,4 @@ func (n *Node) Reply(req Replyable, body interface{}) {
 		Dest string      `json:"dest"`
 		Body interface{} `json:"body"`
 	}{req.Destination(), req.Source(), body})
-}
-
-// requestMsgID reads req.Body.MsgID via reflection. Returns 0 if either field
-// is missing.
-func requestMsgID(req interface{}) int {
-	v := reflect.ValueOf(req)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	body := v.FieldByName("Body")
-	if !body.IsValid() {
-		return 0
-	}
-	f := body.FieldByName("MsgID")
-	if !f.IsValid() {
-		return 0
-	}
-	return int(f.Int())
 }

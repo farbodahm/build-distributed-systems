@@ -49,26 +49,16 @@ func TestReply(t *testing.T) {
 }
 
 func TestRequestMsgID(t *testing.T) {
-	var msg InitMessage
-	msg.Body.MsgID = 7
-
-	if got := requestMsgID(msg); got != 7 {
-		t.Errorf("value: got %d want 7", got)
-	}
-	if got := requestMsgID(&msg); got != 7 {
-		t.Errorf("pointer: got %d want 7", got)
+	var init InitMessage
+	init.Body.MsgID = 7
+	if got := init.RequestMsgID(); got != 7 {
+		t.Errorf("InitMessage: got %d want 7", got)
 	}
 
-	noBody := struct{ Src string }{Src: "c0"}
-	if got := requestMsgID(noBody); got != 0 {
-		t.Errorf("no Body field: got %d want 0", got)
-	}
-
-	noMsgID := struct {
-		Body struct{ Type string }
-	}{}
-	if got := requestMsgID(noMsgID); got != 0 {
-		t.Errorf("no MsgID field: got %d want 0", got)
+	var echo EchoMessage
+	echo.Body.MsgID = 9
+	if got := echo.RequestMsgID(); got != 9 {
+		t.Errorf("EchoMessage: got %d want 9", got)
 	}
 }
 

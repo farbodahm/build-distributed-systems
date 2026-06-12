@@ -8,11 +8,12 @@ const (
 	MsgTypeEcho IncomingMessageType = "echo"
 )
 
-// Replyable is what Node.Reply needs from an incoming message's envelope.
-// The request's msg_id is found separately via reflection on the Body field.
+// Replyable is what Node.Reply needs from an incoming message: where it came
+// from and the msg_id to answer.
 type Replyable interface {
 	Source() string
 	Destination() string
+	RequestMsgID() int
 }
 
 // Incoming is the sealed set of message types ScanTyped can return. The
@@ -20,6 +21,7 @@ type Replyable interface {
 // so a type switch over an Incoming has a known, closed list of cases. Type
 // reports the message's protocol type without a type switch or reflection.
 type Incoming interface {
+	Replyable
 	isIncoming()
 	Type() IncomingMessageType
 }
@@ -48,10 +50,7 @@ type BodyCommon struct {
 }
 
 var _ Incoming = InitMessage{}
-var _ Replyable = InitMessage{}
-
 var _ Incoming = EchoMessage{}
-var _ Replyable = EchoMessage{}
 
 // Init
 type InitMessage struct {
@@ -65,6 +64,7 @@ type InitMessage struct {
 
 func (InitMessage) isIncoming()               {}
 func (InitMessage) Type() IncomingMessageType { return MsgTypeInit }
+func (m InitMessage) RequestMsgID() int       { return m.Body.MsgID }
 
 type InitOkBody struct {
 	BodyCommon
@@ -83,6 +83,7 @@ type EchoMessage struct {
 
 func (EchoMessage) isIncoming()               {}
 func (EchoMessage) Type() IncomingMessageType { return MsgTypeEcho }
+func (m EchoMessage) RequestMsgID() int       { return m.Body.MsgID }
 
 type EchoOkBody struct {
 	BodyCommon

@@ -7,16 +7,14 @@ import (
 func main() {
 	node := NewNode()
 
-	node.RegisterHandler(MsgTypeInit, func(msg Incoming) error {
-		m := msg.(InitMessage)
+	node.OnInit(func(m InitMessage) error {
 		node.Init(m.Body.NodeID, m.Body.NodeIDs)
 		Log.Info("initialized node %s with peers %v", node.ID, node.Peers)
 		node.Reply(m, &InitOkBody{})
 		return nil
 	})
 
-	node.RegisterHandler(MsgTypeEcho, func(msg Incoming) error {
-		m := msg.(EchoMessage)
+	node.OnEcho(func(m EchoMessage) error {
 		Log.Info("received echo request: %s", m.Body.Echo)
 		node.Reply(m, &EchoOkBody{Echo: m.Body.Echo})
 		return nil
