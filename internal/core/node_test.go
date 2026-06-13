@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"encoding/json"
 	"log"
 	"strings"
 	"testing"
@@ -127,6 +128,49 @@ func TestRunDispatchesByType(t *testing.T) {
 
 	if n.ID != "n1" {
 		t.Errorf("init handler did not set node ID: got %q", n.ID)
+	}
+}
+
+func TestSend(t *testing.T) {
+	var buf bytes.Buffer
+	orig := Log.out
+	Log.out = log.New(&buf, "", 0)
+	defer func() { Log.out = orig }()
+
+	n := NewNode()
+	n.Init("n1", nil)
+
+	// Body without a msg_id gets one injected.
+	if err := n.Send("n2", json.RawMessage(`{"type":"echo","echo":"hi"}`)); err != nil {
+		t.Fatalf("Send: %v", err)
+	}
+	// Body with an existing msg_id has it overwritten with the node's id.
+	if err := n.Send("n3", json.RawMessage(`{"type":"echo","msg_id":999}`)); err != nil {
+		t.Fatalf("Send: %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 lines, got %d:\n%s", len(lines), buf.String())
+	}
+
+	var first struct {
+		Src, Dest string
+		Body      struct {
+			Type  string `json:"type"`
+			Echo  string `json:"echo"`
+			MsgID int    `json:"msg_id"`
+		} `json:"body"`
+	}
+	if err := json.Unmarshal([]byte(lines[0]), &first); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if first.Src != "n1" || first.Dest != "n2" || first.Body.Echo != "hi" || first.Body.MsgID != 0 {
+		t.Errorf("first message wrong: %+v", first)
+	}
+
+	if !strings.Contains(lines[1], `"msg_id":1`) || strings.Contains(lines[1], `999`) {
+		t.Errorf("second message should have msg_id 1, not 999: %s", lines[1])
 	}
 }
 

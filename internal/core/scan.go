@@ -62,6 +62,10 @@ func decodeByType(t IncomingMessageType, line []byte) (Incoming, error) {
 		var m EchoMessage
 		err := json.Unmarshal(line, &m)
 		return m, err
+	case MsgTypeProxy:
+		var m ProxyMessage
+		err := json.Unmarshal(line, &m)
+		return m, err
 	default:
 		return nil, fmt.Errorf("unknown message type: %q", t)
 	}

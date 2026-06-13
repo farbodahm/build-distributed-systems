@@ -1,11 +1,14 @@
 package core
 
+import "encoding/json"
+
 // IncomingMessageType is different available message types.
 type IncomingMessageType string
 
 const (
-	MsgTypeInit IncomingMessageType = "init"
-	MsgTypeEcho IncomingMessageType = "echo"
+	MsgTypeInit  IncomingMessageType = "init"
+	MsgTypeEcho  IncomingMessageType = "echo"
+	MsgTypeProxy IncomingMessageType = "proxy"
 )
 
 // Replyable is what Node.Reply needs from an incoming message: where it came
@@ -51,6 +54,7 @@ type BodyCommon struct {
 
 var _ Incoming = InitMessage{}
 var _ Incoming = EchoMessage{}
+var _ Incoming = ProxyMessage{}
 
 // Init
 type InitMessage struct {
@@ -91,3 +95,17 @@ type EchoOkBody struct {
 }
 
 func (EchoOkBody) ReplyType() string { return "echo_ok" }
+
+// Proxy
+type ProxyMessage struct {
+	Envelope
+	Body struct {
+		BodyCommon
+		Target string          `json:"target"`
+		Inner  json.RawMessage `json:"inner"`
+	} `json:"body"`
+}
+
+func (ProxyMessage) isIncoming()               {}
+func (ProxyMessage) Type() IncomingMessageType { return MsgTypeProxy }
+func (m ProxyMessage) RequestMsgID() int       { return m.Body.MsgID }
