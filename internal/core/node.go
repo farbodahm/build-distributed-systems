@@ -1,7 +1,9 @@
 package core
 
 import (
+	"encoding/json"
 	"reflect"
+	"strconv"
 	"sync"
 )
 
@@ -65,6 +67,11 @@ func (n *Node) OnEcho(h func(EchoMessage) error) {
 	n.RegisterHandler(MsgTypeEcho, func(msg Incoming) error { return h(msg.(EchoMessage)) })
 }
 
+// OnProxy registers a typed handler for proxy messages.
+func (n *Node) OnProxy(h func(ProxyMessage) error) {
+	n.RegisterHandler(MsgTypeProxy, func(msg Incoming) error { return h(msg.(ProxyMessage)) })
+}
+
 // Run reads messages from stdin and dispatches each to its registered handler,
 // one at a time, until stdin closes.
 func (n *Node) Run() error {
@@ -118,4 +125,26 @@ func (n *Node) Reply(req Replyable, body interface{}) {
 		Dest string      `json:"dest"`
 		Body interface{} `json:"body"`
 	}{req.Destination(), req.Source(), body})
+}
+
+// Send sends a message with the given body to dest. Src is set to the node's ID
+// and a fresh msg_id is injected into the body (overwriting any existing one).
+func (n *Node) Send(dest string, body json.RawMessage) error {
+	fields := map[string]json.RawMessage{}
+	if err := json.Unmarshal(body, &fields); err != nil {
+		return err
+	}
+	fields["msg_id"] = json.RawMessage(strconv.Itoa(n.NextMsgID()))
+
+	merged, err := json.Marshal(fields)
+	if err != nil {
+		return err
+	}
+
+	Log.PrintJSON(struct {
+		Src  string          `json:"src"`
+		Dest string          `json:"dest"`
+		Body json.RawMessage `json:"body"`
+	}{n.ID, dest, merged})
+	return nil
 }
